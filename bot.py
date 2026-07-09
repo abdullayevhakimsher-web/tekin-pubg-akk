@@ -5,7 +5,11 @@
 
 import asyncio
 import logging
-from fastapi import FastAPI  # <--- YANGI: Render uchun FastAPI
+import os
+from contextlib import asynccontextmanager, suppress
+
+from fastapi import FastAPI
+from fastapi.responses import Response
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -38,8 +42,6 @@ logger = logging.getLogger(__name__)
 # ──────────────────────────────────────────────────────────
 #  FastAPI va Bot obyrktlarini Global miqyosda yaratish
 # ──────────────────────────────────────────────────────────
-app = FastAPI()  # <--- Render aynan shu "app"ni qidiradi
-
 bot = Bot(
     token=config.BOT_TOKEN,
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
@@ -71,9 +73,42 @@ dp.include_router(support.router)           # Adminga murojat
 #  Render uchun maxsus soxta sahifa va Lifespan (Fonda ishlash)
 # ──────────────────────────────────────────────────────────
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # FastAPI (Uvicorn) ishga tushishi bilan botni orqa fonda ishga tushiramiz
+    logger.info("🚀 Bot ishga tushirilmoqda...")
+    bot_task = asyncio.create_task(start_bot())
+    try:
+        yield
+    finally:
+        # Server o'chganda bot taskini to'xtatamiz
+        logger.info("🛑 Server to'xtatilyapti, bot vazifasi bekor qilinmoqda...")
+        bot_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await bot_task
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+def create_app() -> FastAPI:
+    """FastAPI app obyektini qaytaradi."""
+    return app
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    icon_svg = b'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+      <rect width="64" height="64" rx="12" fill="#2563eb"/>
+      <path d="M20 18h24v8H28v6h14v8H28v6h16v8H20z" fill="white"/>
+    </svg>'''
+    return Response(content=icon_svg, media_type="image/svg+xml", status_code=200)
+
+
 @app.get("/")
 async def root():
     return {"status": "success", "message": "Bot is running perfectly!"}
+
 
 @app.get("/api/stats")
 async def get_statistics():
@@ -85,6 +120,7 @@ async def get_statistics():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+
 @app.get("/api/users")
 async def get_users():
     """Barcha bot foydalanuvchilarini ko'rish uchun API endpoint"""
@@ -94,6 +130,7 @@ async def get_users():
         return {"status": "success", "total_users": len(users), "data": users}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
 
 async def start_bot() -> None:
     """Botni orqa fonda (background task) polling rejimida ishga tushirish"""
@@ -115,25 +152,21 @@ async def start_bot() -> None:
         await bot.session.close()
         logger.info("🛑 Bot to'xtatildi.")
 
-@app.router.lifespan_context
-async def lifespan(app: FastAPI):
-    # FastAPI (Uvicorn) ishga tushishi bilan botni orqa fonda ishga tushiramiz
-    bot_task = asyncio.create_task(start_bot())
-    yield
-    # Server o'chganda bot taskini to'xtatamiz
-    logger.info("🛑 Server to'xtatilyapti, bot vazifasi bekor qilinmoqda...")
-    bot_task.cancel()
-
-app.router.lifespan_context = lifespan
-
 
 # ──────────────────────────────────────────────────────────
 #  Kirish nuqtasi (Kompuyterda sinab ko'rish uchun)
 # ──────────────────────────────────────────────────────────
-if __name__ == "__main__":
+def main() -> None:
     import uvicorn
+
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", "8000"))
+
     try:
-        # reload=True aiogramning routerlari ikki marta ulanib qolishiga olib kelishi mumkin
-        uvicorn.run(app, host="127.0.0.1", port=8000)
+        uvicorn.run(app, host=host, port=port, reload=False)
     except KeyboardInterrupt:
         logger.info("⚡ Bot foydalanuvchi tomonidan to'xtatildi (Ctrl+C).")
+
+
+if __name__ == "__main__":
+    main()

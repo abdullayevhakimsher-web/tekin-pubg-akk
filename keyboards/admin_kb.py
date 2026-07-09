@@ -28,6 +28,10 @@ def admin_panel_keyboard() -> ReplyKeyboardMarkup:
             KeyboardButton(text="➕ Akkaunt qo'shish"),
         ],
         [
+            KeyboardButton(text="🎁 BullDrop Promo Yozish"),
+            KeyboardButton(text="🎟 Balli Promo kiritish"),
+        ],
+        [
             KeyboardButton(text="🎁 Referal bonusni o'zgartirish"),
             KeyboardButton(text="📊 Statistika"),
         ],

@@ -86,6 +86,45 @@ def create_tables() -> None:
             VALUES ('referral_bonus', '10')
         """)
 
+        # --- BullDrop promokodlari ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bulldrop_promos (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                rasm_id     TEXT NOT NULL,
+                promo_text  TEXT NOT NULL
+            )
+        """)
+
+        # --- User BullDrop claims (24 soat limit uchun) ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_bulldrop_claims (
+                user_id     INTEGER NOT NULL,
+                promo_id    INTEGER NOT NULL,
+                claimed_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, promo_id)
+            )
+        """)
+
+        # --- Ball promokodlari ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ball_promos (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                promo_text  TEXT NOT NULL UNIQUE,
+                ball        INTEGER NOT NULL,
+                limit_count INTEGER NOT NULL,
+                used_count  INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+
+        # --- User Ball Promo claims ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_ball_promo_claims (
+                user_id     INTEGER NOT NULL,
+                promo_id    INTEGER NOT NULL,
+                PRIMARY KEY (user_id, promo_id)
+            )
+        """)
+
         conn.commit()
     logger.info("✅ Ma'lumotlar bazasi jadvallari muvaffaqiyatli yaratildi.")
 
@@ -323,3 +362,95 @@ def get_stats() -> Dict[str, Any]:
             "total_channels": total_channels,
             "referral_bonus": referral_bonus,
         }
+
+# ─────────────────────────────────────────────────────────────
+#  BULLDROP PROMO CRUD
+# ─────────────────────────────────────────────────────────────
+def add_bulldrop_promo(rasm_id: str, promo_text: str) -> int:
+    """Yangi BullDrop promokod kiritadi."""
+    with get_connection() as conn:
+        cursor = conn.execute(
+            "INSERT INTO bulldrop_promos (rasm_id, promo_text) VALUES (?, ?)",
+            (rasm_id, promo_text)
+        )
+        conn.commit()
+        return cursor.lastrowid
+
+def get_available_bulldrop_for_user(user_id: int) -> Optional[sqlite3.Row]:
+    """
+    Foydalanuvchi hali olmagan 1 ta BullDrop promokodini qaytaradi.
+    """
+    with get_connection() as conn:
+        return conn.execute(
+            """
+            SELECT bp.* FROM bulldrop_promos bp
+            WHERE bp.id NOT IN (
+                SELECT promo_id FROM user_bulldrop_claims WHERE user_id = ?
+            )
+            LIMIT 1
+            """,
+            (user_id,)
+        ).fetchone()
+
+def get_last_bulldrop_claim_time(user_id: int) -> Optional[str]:
+    """User qachon oxirgi marta BullDrop olganini qaytaradi (TIMESTAMP)."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT MAX(claimed_at) as last_claim FROM user_bulldrop_claims WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+        return row["last_claim"] if row else None
+
+def record_bulldrop_claim(user_id: int, promo_id: int) -> None:
+    """User promokodni olganini qayd etadi."""
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO user_bulldrop_claims (user_id, promo_id) VALUES (?, ?)",
+            (user_id, promo_id)
+        )
+        conn.commit()
+
+# ─────────────────────────────────────────────────────────────
+#  BALL PROMO CRUD
+# ─────────────────────────────────────────────────────────────
+def add_ball_promo(promo_text: str, ball: int, limit_count: int) -> bool:
+    """Yangi ball beradigan promokod kiritadi."""
+    try:
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO ball_promos (promo_text, ball, limit_count) VALUES (?, ?, ?)",
+                (promo_text, ball, limit_count)
+            )
+            conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False # promokod allaqachon mavjud
+
+def get_ball_promo(promo_text: str) -> Optional[sqlite3.Row]:
+    """Promokod so'zi bo'yicha bazadan qidiradi."""
+    with get_connection() as conn:
+        return conn.execute(
+            "SELECT * FROM ball_promos WHERE promo_text = ?", (promo_text,)
+        ).fetchone()
+
+def has_user_claimed_ball_promo(user_id: int, promo_id: int) -> bool:
+    """Foydalanuvchi bu balli promokodni oldin ishlatanligini tekshiradi."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM user_ball_promo_claims WHERE user_id = ? AND promo_id = ?",
+            (user_id, promo_id)
+        ).fetchone()
+        return row is not None
+
+def record_ball_promo_claim(user_id: int, promo_id: int) -> None:
+    """User ball promokodni ishlatsa, used_count oshiriladi va qayd etiladi."""
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO user_ball_promo_claims (user_id, promo_id) VALUES (?, ?)",
+            (user_id, promo_id)
+        )
+        conn.execute(
+            "UPDATE ball_promos SET used_count = used_count + 1 WHERE id = ?",
+            (promo_id,)
+        )
+        conn.commit()

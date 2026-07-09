@@ -20,6 +20,9 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
     """
     buttons = [
         [
+            KeyboardButton(text="🎁 BullDrop Promokod Olish"),
+        ],
+        [
             KeyboardButton(text="🎁 Ball yig'ish"),
             KeyboardButton(text="🆓 Tekin pubg akk olish"),
         ],
@@ -118,4 +121,40 @@ def confirm_buy_keyboard(account_id: int, prefix: str) -> InlineKeyboardMarkup:
             callback_data="cancel_buy"
         )
     )
+    return builder.as_markup()
+
+def referral_inline_keyboard() -> InlineKeyboardMarkup:
+    """Ball yig'ish bosilganda chiqadigan inline tugmalar."""
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="🔗 Link olish", callback_data="ref:get_link"),
+        InlineKeyboardButton(text="🎫 Promokod yozish", callback_data="ref:enter_promo")
+    )
+    return builder.as_markup()
+
+def balli_accounts_slider_keyboard(account_id: int, current_index: int, total_count: int) -> InlineKeyboardMarkup:
+    """Balli akkauntlarni carousel/slider uslubida ko'rsatish."""
+    builder = InlineKeyboardBuilder()
+    
+    # 1-qator: Sotib olish
+    builder.row(
+        InlineKeyboardButton(
+            text="✅ Sotib olish",
+            callback_data=f"buy_balli:{account_id}"
+        )
+    )
+    # 2-qator: Navigatsiya
+    nav_buttons = []
+    
+    next_index = (current_index + 1) % total_count
+    
+    nav_buttons.append(
+        InlineKeyboardButton(
+            text="➡️ Keyingisi",
+            callback_data=f"slider:balli:{next_index}"
+        )
+    )
+    
+    builder.row(*nav_buttons)
+    
     return builder.as_markup()

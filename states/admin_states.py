@@ -32,3 +32,16 @@ class AdminReferralState(StatesGroup):
 class AdminBroadcastState(StatesGroup):
     """Barcha foydalanuvchilarga xabar yuborish holati."""
     waiting_for_message = State()  # Xabar matnini kutish
+
+
+class AdminBullDropState(StatesGroup):
+    """BullDrop promokodlarni kiritish holatlari."""
+    waiting_for_photo = State()  # Rasm kiritish
+    waiting_for_promos = State() # Promokod(lar) matnini kiritish
+
+
+class AdminBallPromoState(StatesGroup):
+    """Balli Promokod kiritish holatlari."""
+    waiting_for_promo_text = State()
+    waiting_for_ball = State()
+    waiting_for_limit = State()

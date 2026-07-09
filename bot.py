@@ -23,10 +23,10 @@ import config
 from database.db import create_tables
 
 # ── User handlerlari
-from handlers.user import start, menu, referral, accounts, support
+from handlers.user import start, menu, referral, accounts, support, bulldrop
 
 # ── Admin handlerlari
-from handlers.admin import auth, channels, accounts as admin_accounts, referral as admin_referral, stats
+from handlers.admin import auth, channels, accounts as admin_accounts, referral as admin_referral, stats, promos
 
 # ──────────────────────────────────────────────────────────
 #  Logging sozlamasi
@@ -60,12 +60,14 @@ dp.include_router(channels.router)          # Kanallar boshqarish
 dp.include_router(admin_accounts.router)    # Akkaunt qo'shish
 dp.include_router(admin_referral.router)    # Referal bonus
 dp.include_router(stats.router)             # Statistika + broadcast
+dp.include_router(promos.router)            # Promokodlar boshqaruvi
 
 # === User routerlari ===
 dp.include_router(start.router)             # /start
 dp.include_router(menu.router)              # Asosiy menyu
 dp.include_router(referral.router)          # Ball yig'ish
 dp.include_router(accounts.router)          # Akkaunt olish
+dp.include_router(bulldrop.router)          # BullDrop olish
 dp.include_router(support.router)           # Adminga murojat
 
 

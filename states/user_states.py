@@ -13,3 +13,8 @@ class SupportState(StatesGroup):
 class BuyAccountState(StatesGroup):
     """Akkaunt sotib olish tasdiqlash holati."""
     waiting_for_confirm = State()   # Tasdiqlash javobini kutish
+
+
+class EnterBallPromoState(StatesGroup):
+    """Ball promokodini kiritish holati."""
+    waiting_for_promo = State()

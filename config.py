@@ -7,7 +7,7 @@ BOT_TOKEN = "8079443248:AAEMvpfzlZycSVIy1GSCeYU-GybmLazOoQQ"   # @BotFather dan 
 # -------------------------------------------------------
 # MUHIM: Quyidagi ID ni o'z Telegram ID ingiz bilan almashtiring
 # -------------------------------------------------------
-ADMIN_ID = 8830513363                 # sizning Telegram ID ingiz
+ADMIN_ID = 8811271169                 # sizning Telegram ID ingiz
 
 ADMIN_LOGIN_COMMAND = "/Admin11"     # Admin kirish komandasi
 ADMIN_PASSWORD = "Abdullayev"        # Admin paroli
